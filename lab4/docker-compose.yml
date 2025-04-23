@@ -1,0 +1,182 @@
+version: '3'
+services:
+#  dns_cache_priv:
+#    build: ./dns_cache_priv
+#    container_name: dns_cache_priv
+#    hostname: dns_cache_priv
+#    privileged: true
+#    ports:
+#      - "53:53"
+#    volumes:
+#     - ./etcbind_cache/named.conf.options:/etc/bind/named.conf.options
+#     - ./etcresolv/resolv.conf:/etc/resolv.conf
+#     - /var/cache/bind
+#     - /var/lib/bind
+#    networks:
+#      client_net_1:
+#        ipv4_address: 10.0.1.100
+  dns:
+    build: ./dns
+    container_name: dns
+    hostname: dns
+    privileged: true
+#    ports:
+#      - "53:53"
+    volumes:
+     - ./etcbind/db.myorg.net:/etc/bind/db.myorg.net
+     - ./etcbind/named.conf.local:/etc/bind/named.conf.local
+     - ./etcbind/named.conf.options:/etc/bind/named.conf.options
+     - ./etcbind/db.myorg.net:/etc/bind/db.172.16.123
+     - ./etcresolv/resolv.conf:/etc/resolv.conf
+     - /var/cache/bind
+     - /var/lib/bind
+    networks:
+      dmz_net:
+        ipv4_address: 172.16.123.138
+#    command: sh -c " /sbin/ip route replace default via 172.16.123.142 && exec /sbin/entrypoint.sh && exec /usr/sbin/named"
+  nginx:
+    build: ./nginx
+    privileged: true
+    volumes:
+     - ./etcresolv/resolv.conf:/etc/resolv.conf
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          cpus: '0.80'
+          memory: 10M
+        reservations:
+          memory: 6M
+    ports:
+      - 80
+    networks:
+      dmz_net:
+  loadbalancer:
+    build: ./loadbalancer
+    container_name: loadbalancer
+    privileged: true
+    volumes:
+     - ./etcresolv/resolv.conf:/etc/resolv.conf
+    ports:
+      - "80:80"
+    networks:
+      dmz_net:
+        ipv4_address: 172.16.123.136
+    #command: sh -c " /sbin/ip route replace default via 10.0.2.254 && exec /docker-entrypoint.sh nginx -g 'daemon off;'"
+    tty: true
+    depends_on:
+      - router
+      - nginx
+  client:
+    build: ./baseimage
+#    container_name: client
+    privileged: true
+    volumes:
+     - ./etcresolv_client/resolv.conf:/etc/resolv.conf
+    networks:
+      client_net_1:
+    deploy:
+      replicas: 4
+    command: > 
+      sh -c "/sbin/ip route replace default via 10.0.1.254 &&
+             /root/sleep.sh"
+    tty: true
+    depends_on:
+      - router
+  squid:
+    build: ./squid
+    container_name: squid
+    hostname: squid
+    privileged: true
+    volumes:
+     - ./etcresolv/resolv.conf:/etc/resolv.conf
+    dns:
+     - 172.16.123.138
+     - 127.0.0.11
+    dns_search:
+     - myorg.net
+    networks:
+      client_net_1:
+        ipv4_address: 10.0.1.253
+
+  router:
+    build: ./baseimage
+    container_name: router
+    hostname: router
+    privileged: true
+    volumes:
+     - ./etcresolv/resolv.conf:/etc/resolv.conf
+    networks:
+      client_net_1:
+        ipv4_address: 10.0.1.254
+      client_net_2:
+        ipv4_address: 10.0.2.254 
+      dmz_net:
+        ipv4_address: 172.16.123.142
+  edge_router:
+    build: ./baseimage
+    container_name: edge_router
+    hostname: edge_router
+    privileged: true
+    volumes:
+     - ./etcresolv/resolv.conf:/etc/resolv.conf
+    networks:
+      public_net:
+        ipv4_address: 172.31.255.253
+      dmz_net:
+        ipv4_address: 172.16.123.141
+  nagios:
+    #image: jasonrivers/nagios
+    build: ./nagios
+    container_name: noc
+    hostname: noc
+    ports:
+     - 8081:80
+    environment:
+     - NAGIOSADMIN_USER=nagiosadmin
+     - NAGIOSAMDIN_PASS=nagios
+    volumes:
+     - ./etc/:/opt/nagios/etc/
+     - ./etcresolv/resolv.conf:/etc/resolv.conf
+    networks:
+      dmz_net:
+        ipv4_address: 172.16.123.137
+  externalhost:
+    build: ./baseimage
+    container_name: externalhost
+    hostname: externalhost
+    privileged: true
+    volumes:
+     - ./etcresolv/resolv.conf:/etc/resolv.conf
+    networks:
+      public_net:
+        ipv4_address: 172.31.255.100
+    command: >
+      sh -c "/sbin/ip route add 172.16.123.128/28 via 172.31.255.253 &&
+             /root/sleep.sh"
+    depends_on:
+      - edge_router
+
+networks:
+  client_net_1:
+    ipam:
+      config:
+        - subnet: 10.0.1.0/24
+          gateway: 10.0.1.1
+  client_net_2:
+    ipam:
+      config:
+        - subnet: 10.0.2.0/24
+          gateway: 10.0.2.1
+  dmz_net:
+    ipam:
+      config:
+        - subnet: 172.16.123.128/28
+          gateway: 172.16.123.129
+  public_net:
+    ipam:
+      config:
+        - subnet: 172.31.255.0/24
+          gateway: 172.31.255.1
+
+

@@ -9,8 +9,11 @@ RUN chown quagga:quagga /var/log/quagga
 RUN mkdir /run/quagga
 RUN chmod a+w /run/quagga
 COPY sleep.sh /root/sleep.sh
-COPY start.sh /root/start.sh
+COPY start-ospf-bgp.sh /root/start-ospf-bgp.sh
+COPY start-ospf.sh /root/start-ospf.sh
+COPY start-bgp.sh /root/start-bgp.sh
 COPY ospf.exp /root/ospf.exp
 COPY zebra.exp /root/zebra.exp
-CMD /root/start.sh
+COPY bgp.exp /root/bgp.exp
+CMD /root/start-ospf.sh
 

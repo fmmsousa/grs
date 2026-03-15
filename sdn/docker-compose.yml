@@ -1,0 +1,9 @@
+version: '3'
+services:
+  sdn-env:
+    build: .
+    container_name: sdn-lab
+    privileged: true
+    stdin_open: true
+    tty: true
+

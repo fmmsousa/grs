@@ -1,14 +1,36 @@
 version: '3.8'
 
 networks:
-  public_net:
+  org1_org3_net:
     driver: bridge
-    driver_opts:
-      parent: eth2
     ipam:
       config:
-        - subnet: 172.31.255.0/24
-          gateway: 172.31.255.254
+        - subnet: 172.31.255.0/29
+          gateway: 172.31.255.1
+  org3_org2_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.255.8/29
+          gateway: 172.31.255.9
+  org1_org4_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.255.16/29
+          gateway: 172.31.255.17
+  org4_org5_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.255.24/29
+          gateway: 172.31.255.25
+  org5_org2_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.255.32/29
+          gateway: 172.31.255.33
   org1_int1_net:
     driver: bridge
     ipam:
@@ -79,6 +101,63 @@ networks:
           gateway: 172.16.123.1
 
 services:
+  org3_router1:
+    build: ./baseimage
+    container_name: org3_router1
+    hostname: org3_router1
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    networks:
+      org1_org3_net:
+        ipv4_address: 172.31.255.2
+      org3_org2_net:
+        ipv4_address: 172.31.255.10
+    volumes:
+      - ./zebra.conf:/etc/quagga/zebra.conf
+      - ./bgpd-org3.conf:/etc/quagga/bgpd.conf
+    command: >
+                sh -c "/root/start-bgp.sh"
+    tty: true
+
+  org4_router1:
+    build: ./baseimage
+    container_name: org4_router1
+    hostname: org4_router1
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    networks:
+      org1_org4_net:
+        ipv4_address: 172.31.255.18
+      org4_org5_net:
+        ipv4_address: 172.31.255.26
+    volumes:
+      - ./zebra.conf:/etc/quagga/zebra.conf
+      - ./bgpd-org4.conf:/etc/quagga/bgpd.conf
+    command: >
+                sh -c "/root/start-bgp.sh"
+    tty: true
+
+  org5_router1:
+    build: ./baseimage
+    container_name: org5_router1
+    hostname: org5_router1
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    networks:
+      org4_org5_net:
+        ipv4_address: 172.31.255.27
+      org5_org2_net:
+        ipv4_address: 172.31.255.34
+    volumes:
+      - ./zebra.conf:/etc/quagga/zebra.conf
+      - ./bgpd-org5.conf:/etc/quagga/bgpd.conf
+    command: >
+                sh -c "/root/start-bgp.sh"
+    tty: true
+
   org1_router1:
     build: ./baseimage
     container_name: org1_router1
@@ -91,8 +170,10 @@ services:
         ipv4_address: 10.0.1.2
       org1_int2_net:
         ipv4_address: 10.0.1.10
-      public_net:
-        ipv4_address: 172.31.255.253
+      org1_org3_net:
+        ipv4_address: 172.31.255.3
+      org1_org4_net:
+        ipv4_address: 172.31.255.19
     volumes:
       - ./zebra.conf:/etc/quagga/zebra.conf
       - ./ospfd1.conf:/etc/quagga/ospfd.conf
@@ -179,8 +260,10 @@ services:
     cap_add:
       - NET_ADMIN
     networks:
-      public_net:
-        ipv4_address: 172.31.255.252      
+      org3_org2_net:
+        ipv4_address: 172.31.255.11
+      org5_org2_net:
+        ipv4_address: 172.31.255.35
       org2_int1_net:
         ipv4_address: 10.0.2.2
       org2_int2_net:
@@ -190,7 +273,7 @@ services:
       - ./ospfd1.conf:/etc/quagga/ospfd.conf
       - ./bgpd-org2.conf:/etc/quagga/bgpd.conf
     command: >
-                sh -c "/sbin/ip route replace default via 172.31.255.1 && /root/start-ospf-bgp.sh"
+                sh -c "/root/start-ospf-bgp.sh"
     tty: true
 
   org2_router2:

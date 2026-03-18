@@ -12,8 +12,8 @@ COPY sleep.sh /root/sleep.sh
 COPY start-ospf-bgp.sh /root/start-ospf-bgp.sh
 COPY start-ospf.sh /root/start-ospf.sh
 COPY start-bgp.sh /root/start-bgp.sh
+COPY rename_if.sh /root/rename_if.sh
 COPY ospf.exp /root/ospf.exp
 COPY zebra.exp /root/zebra.exp
 COPY bgp.exp /root/bgp.exp
 CMD /root/start-ospf.sh
-

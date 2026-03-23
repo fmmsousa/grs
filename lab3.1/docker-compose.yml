@@ -107,6 +107,10 @@ services:
     container_name: router
     hostname: router
     privileged: true
+    command: >
+      sh -c "/sbin/ip route replace default via 172.16.123.129 &&
+             /usr/sbin/iptables -t nat -A POSTROUTING -o eth2 -j MASQUERADE &&
+             /root/sleep.sh"
     volumes:
      - ./etcresolv/resolv.conf:/etc/resolv.conf
     networks:

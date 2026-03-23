@@ -2,6 +2,7 @@
 
 /sbin/ip route replace default via 172.16.255.254
 /sbin/ip route add 10.0.1.0/24 via 172.16.123.142
+/sbin/ip route add 10.0.2.0/24 via 172.16.123.142
 /usr/sbin/named -g -c /etc/bind/named.conf -u bind
 while true
  do

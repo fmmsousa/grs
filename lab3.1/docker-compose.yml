@@ -30,6 +30,7 @@ services:
      - ./etcresolv/resolv.conf:/etc/resolv.conf
      - /var/cache/bind
      - /var/lib/bind
+     - ./dnsdata:/run/named
     networks:
       dmz_net:
         ipv4_address: 172.16.123.138
@@ -69,7 +70,7 @@ services:
     depends_on:
       - router
       - nginx
-  client:
+  client_sales:
     build: ./baseimage
 #    container_name: client
     privileged: true
@@ -81,6 +82,22 @@ services:
       replicas: 4
     command: > 
       sh -c "/sbin/ip route replace default via 10.0.1.254 &&
+             /root/sleep.sh"
+    tty: true
+    depends_on:
+      - router
+  client_marketing:
+    build: ./baseimage
+#    container_name: client
+    privileged: true
+    volumes:
+     - ./etcresolv_client/resolv.conf:/etc/resolv.conf
+    networks:
+      client_net_2:
+    deploy:
+      replicas: 2
+    command: >
+      sh -c "/sbin/ip route replace default via 10.0.2.254 &&
              /root/sleep.sh"
     tty: true
     depends_on:
@@ -116,10 +133,4 @@ networks:
       config:
         - subnet: 172.16.123.128/28
           gateway: 172.16.123.129
-  public_net:
-    ipam:
-      config:
-        - subnet: 172.31.255.0/24
-          gateway: 172.31.255.1
-
 
